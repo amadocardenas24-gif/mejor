@@ -13,12 +13,18 @@
             const audio = document.querySelector('#ar-audio');
 
             arTarget.addEventListener('targetFound', () => {
-                // Reproduce el video (puedes mantenerlo muted si solo quieres el MP3)
-                video.play().catch(e => console.error("Video play failed", e));
-                
-                // Reproduce el audio MP3
-                audio.currentTime = 0; // Reinicia desde el principio cada vez
-                audio.play().catch(e => console.error("Audio play failed", e));
+                // Reinicia y reproduce el video
+                video.currentTime = 0;
+                video.play().catch(e => {
+                    console.error("Error video:", e);
+                    // En algunos móviles falla sin muted temporalmente
+                    video.muted = true;
+                    video.play();
+                });
+
+                // Reinicia y reproduce el audio MP3
+                audio.currentTime = 0;
+                audio.play().catch(e => console.error("Error audio:", e));
             });
 
             arTarget.addEventListener('targetLost', () => {
@@ -29,13 +35,29 @@
     </script>
 </head>
 <body>
-    <a-scene mindar-image="imageTargetSrc: ./marker.mind;" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false" renderer="colorManagement: true;">
+    <a-scene 
+        mindar-image="imageTargetSrc: ./marker.mind;" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false" 
+        renderer="colorManagement: true;"
+    >
         <a-assets>
-            <!-- Video (puedes dejarlo muted si solo quieres el MP3) -->
-            <video id="ar-video" src="./asset.mp4" loop muted playsinline crossorigin="anonymous"></video>
-            
+            <!-- Video (sin muted para mejor compatibilidad de reproducción) -->
+            <video 
+                id="ar-video" 
+                src="./asset.mp4" 
+                loop 
+                playsinline 
+                webkit-playsinline 
+                crossorigin="anonymous"
+            ></video>
+
             <!-- Audio MP3 separado -->
-            <audio id="ar-audio" src="./audio.mp3" preload="auto"></audio>
+            <audio 
+                id="ar-audio" 
+                src="./audio.mp3" 
+                preload="auto"
+            ></audio>
         </a-assets>
 
         <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -44,7 +66,7 @@
             <a-plane
                 src="#ar-video"
                 position="0 0 0"
-                rotation="0 0 0"
+                rotation="-90 0 0"  <!-- Recomendado: -90 en X para que quede horizontal -->
                 height="1"
                 width="1.8076923076923077"
             ></a-plane>
