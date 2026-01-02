@@ -39,7 +39,6 @@
             justify-content: center;
             align-items: center;
             z-index: 1000;
-            transition: opacity 0.5s ease;
             padding: 20px;
         }
 
@@ -182,7 +181,6 @@
             opacity: 0;
             visibility: hidden;
             z-index: 900;
-            transition: opacity 0.5s ease, visibility 0.5s;
         }
 
         #ar-scene.visible {
@@ -190,7 +188,7 @@
             visibility: visible;
         }
 
-        /* Botón de sonido flotante */
+        /* Botón de sonido */
         .sound-controls {
             position: fixed;
             bottom: 20px;
@@ -219,108 +217,8 @@
 
         .sound-btn:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
         }
 
-        .sound-btn.muted {
-            background: linear-gradient(135deg, #666, #999);
-        }
-
-        .sound-btn::after {
-            content: attr(data-tooltip);
-            position: absolute;
-            bottom: 70px;
-            right: 0;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 14px;
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-        }
-
-        .sound-btn:hover::after {
-            opacity: 1;
-        }
-
-        @media (max-width: 768px) {
-            .sound-btn {
-                width: 50px;
-                height: 50px;
-                font-size: 20px;
-            }
-            
-            .sound-controls {
-                bottom: 15px;
-                right: 15px;
-            }
-        }
-
-        /* Botón de ayuda/información */
-        .info-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #FFE66D, #1A535C);
-            border: 2px solid white;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        /* Mensaje de activación de sonido */
-        .sound-alert {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 107, 107, 0.9);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 25px;
-            z-index: 1002;
-            display: none;
-            align-items: center;
-            gap: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            animation: slideDown 0.5s ease;
-        }
-
-        @keyframes slideDown {
-            from {
-                transform: translateX(-50%) translateY(-100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(-50%) translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .sound-alert.hidden {
-            animation: slideUp 0.5s ease;
-            transform: translateX(-50%) translateY(-100%);
-            opacity: 0;
-        }
-
-        @keyframes slideUp {
-            from {
-                transform: translateX(-50%) translateY(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(-50%) translateY(-100%);
-                opacity: 0;
-            }
-        }
-
-        /* Animaciones */
         @keyframes gradientBG {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -335,22 +233,6 @@
         @keyframes sway {
             0%, 100% { transform: rotate(-3deg); }
             50% { transform: rotate(3deg); }
-        }
-
-        /* Mensaje de error */
-        .video-error {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            z-index: 1100;
-            max-width: 300px;
         }
     </style>
 </head>
@@ -381,26 +263,11 @@
         </div>
     </div>
 
-    <!-- Alerta de sonido -->
-    <div class="sound-alert" id="soundAlert">
-        <span>🔊 El video tiene sonido! Presiona el botón para activarlo</span>
-        <button id="closeAlert" style="background: none; border: none; color: white; font-size: 20px; cursor: pointer;">✕</button>
-    </div>
-
     <!-- Controles de sonido -->
     <div class="sound-controls" id="soundControls">
-        <button class="sound-btn" id="soundToggle" data-tooltip="Activar/Desactivar sonido">
+        <button class="sound-btn" id="soundToggle">
             🔇
         </button>
-        <button class="info-btn" id="infoBtn" data-tooltip="Instrucciones">
-            ?
-        </button>
-    </div>
-
-    <!-- Mensaje de error -->
-    <div class="video-error" id="videoError">
-        <h3>⚠️ Error de Video</h3>
-        <p>No se pudo cargar el video. Verifica que el archivo "asset.mp4" exista.</p>
     </div>
 
     <!-- Escena AR -->
@@ -448,296 +315,220 @@
     </div>
 
     <script>
-        window.addEventListener('load', function() {
-            const loadingScreen = document.getElementById('loadingScreen');
+        // Variable global para controlar la carga
+        let resourcesLoaded = false;
+        
+        // Función para actualizar la barra de carga
+        function updateProgressBar(percentage) {
             const loadingBar = document.getElementById('loadingBar');
             const loadingPercentage = document.getElementById('loadingPercentage');
-            const arScene = document.getElementById('ar-scene');
-            const soundControls = document.getElementById('soundControls');
-            const soundToggle = document.getElementById('soundToggle');
-            const soundAlert = document.getElementById('soundAlert');
-            const closeAlert = document.getElementById('closeAlert');
-            const videoError = document.getElementById('videoError');
-            const infoBtn = document.getElementById('infoBtn');
             
-            let loadProgress = 0;
-            let isVideoLoaded = false;
-            let isARLoaded = false;
-            let isSoundEnabled = false;
-            let hasShownSoundAlert = false;
+            if (loadingBar && loadingPercentage) {
+                loadingBar.style.width = percentage + '%';
+                loadingPercentage.textContent = Math.round(percentage) + '%';
+            }
+        }
+        
+        // Función para cargar recursos
+        function loadResources() {
+            let progress = 0;
+            
+            // Progreso inicial
+            updateProgressBar(10);
+            
+            // Incrementar progreso gradualmente
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 5 + 2; // Incremento variable
+                
+                // No pasar del 90% hasta que todo esté cargado
+                if (progress > 90) {
+                    progress = 90;
+                }
+                
+                updateProgressBar(progress);
+                
+                // Si ya cargamos todo, detener el intervalo
+                if (resourcesLoaded && progress >= 90) {
+                    clearInterval(progressInterval);
+                    updateProgressBar(100);
+                    
+                    // Esperar un momento y luego mostrar la escena AR
+                    setTimeout(() => {
+                        showARScene();
+                    }, 500);
+                }
+            }, 200);
+            
+            // Verificar carga de A-Frame y MindAR
+            waitForAFrame().then(() => {
+                console.log("A-Frame y MindAR cargados");
+                resourcesLoaded = true;
+            }).catch(error => {
+                console.error("Error cargando A-Frame:", error);
+            });
+        }
+        
+        // Esperar a que A-Frame cargue
+        function waitForAFrame() {
+            return new Promise((resolve, reject) => {
+                const scene = document.querySelector('a-scene');
+                
+                if (!scene) {
+                    reject('Escena no encontrada');
+                    return;
+                }
+                
+                // Si ya está cargado
+                if (scene.hasLoaded) {
+                    console.log('A-Frame ya cargado');
+                    resolve();
+                    return;
+                }
+                
+                // Esperar evento loaded
+                scene.addEventListener('loaded', () => {
+                    console.log('A-Frame cargado completamente');
+                    
+                    // Configurar eventos del video después de que A-Frame cargue
+                    setupVideoEvents();
+                    resolve();
+                });
+                
+                // Timeout por si hay error
+                setTimeout(() => {
+                    if (!scene.hasLoaded) {
+                        console.warn('Timeout cargando A-Frame, continuando...');
+                        resolve();
+                    }
+                }, 10000);
+            });
+        }
+        
+        // Configurar eventos del video
+        function setupVideoEvents() {
+            const arTarget = document.querySelector('#ar-target');
+            const video = document.querySelector('#ar-video');
+            
+            if (!arTarget || !video) {
+                console.warn('Elementos AR no encontrados, reintentando...');
+                setTimeout(setupVideoEvents, 500);
+                return;
+            }
+            
+            console.log('Configurando eventos de video...');
+            
+            // Evento cuando se encuentra el marcador
+            arTarget.addEventListener('targetFound', (event) => {
+                console.log('Marcador encontrado!');
+                
+                // Mostrar controles de sonido
+                const soundControls = document.getElementById('soundControls');
+                if (soundControls) {
+                    soundControls.style.display = 'flex';
+                }
+                
+                // Reproducir video
+                video.play().then(() => {
+                    console.log('Video reproducido');
+                }).catch(error => {
+                    console.error('Error al reproducir video:', error);
+                });
+            });
+            
+            // Evento cuando se pierde el marcador
+            arTarget.addEventListener('targetLost', (event) => {
+                console.log('Marcador perdido');
+                video.pause();
+            });
+            
+            // Evento de error del video
+            video.addEventListener('error', (e) => {
+                console.error('Error en video:', e);
+                alert('Error cargando el video. Verifica que el archivo asset.mp4 exista.');
+            });
+        }
+        
+        // Mostrar la escena AR
+        function showARScene() {
+            const loadingScreen = document.getElementById('loadingScreen');
+            const arScene = document.getElementById('ar-scene');
+            
+            // Ocultar pantalla de carga con transición
+            if (loadingScreen) {
+                loadingScreen.style.transition = 'opacity 0.5s ease';
+                loadingScreen.style.opacity = '0';
+                
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    
+                    // Mostrar escena AR
+                    if (arScene) {
+                        arScene.classList.add('visible');
+                        
+                        // Iniciar MindAR
+                        const scene = document.querySelector('a-scene');
+                        if (scene && scene.systems['mindar-image-system']) {
+                            console.log('Iniciando MindAR...');
+                            scene.systems['mindar-image-system'].start();
+                        }
+                    }
+                }, 500);
+            }
+        }
+        
+        // Configurar control de sonido
+        function setupSoundControl() {
+            const soundToggle = document.getElementById('soundToggle');
+            if (!soundToggle) return;
+            
+            let isMuted = true;
+            
+            soundToggle.addEventListener('click', () => {
+                const video = document.querySelector('#ar-video');
+                if (!video) return;
+                
+                isMuted = !isMuted;
+                video.muted = isMuted;
+                
+                // Cambiar icono
+                soundToggle.textContent = isMuted ? '🔇' : '🔊';
+                
+                // Feedback visual
+                soundToggle.style.transform = 'scale(0.9)';
+                setTimeout(() => {
+                    soundToggle.style.transform = 'scale(1)';
+                }, 100);
+                
+                console.log('Sonido ' + (isMuted ? 'desactivado' : 'activado'));
+            });
+        }
+        
+        // Inicializar cuando el DOM esté listo
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM cargado, iniciando carga...');
+            
+            // Configurar control de sonido
+            setupSoundControl();
             
             // Ajustar altura para móviles
             function adjustForMobile() {
-                const vh = window.innerHeight * 0.01;
-                document.documentElement.style.setProperty('--vh', `${vh}px');
-                
+                const loadingScreen = document.getElementById('loadingScreen');
                 if (loadingScreen) {
                     loadingScreen.style.height = window.innerHeight + 'px';
                 }
             }
             
-            // Verificar si el video tiene audio
-            function checkVideoAudio() {
-                return new Promise((resolve) => {
-                    const video = document.querySelector('#ar-video');
-                    
-                    // Esperar a que se carguen los metadatos
-                    video.addEventListener('loadedmetadata', () => {
-                        // Verificar si el video tiene pista de audio
-                        // (Esto es una aproximación - no todos los navegadores lo soportan)
-                        console.log('Duración del video:', video.duration);
-                        console.log('Video listo para reproducir');
-                        resolve();
-                    });
-                });
-            }
-            
-            // Verificar si el video existe
-            function checkVideo() {
-                return new Promise((resolve, reject) => {
-                    const video = document.querySelector('#ar-video');
-                    
-                    video.addEventListener('loadeddata', () => {
-                        console.log('Video cargado correctamente');
-                        isVideoLoaded = true;
-                        updateProgress();
-                        resolve();
-                    });
-                    
-                    video.addEventListener('error', (e) => {
-                        console.error('Error cargando video:', e);
-                        showError('Error al cargar el video. Verifica la ruta del archivo.');
-                        reject(e);
-                    });
-                    
-                    // Forzar carga del video
-                    video.load();
-                });
-            }
-            
-            // Esperar a que A-Frame cargue
-            function waitForAFrame() {
-                return new Promise((resolve) => {
-                    const scene = document.querySelector('a-scene');
-                    
-                    if (scene.hasLoaded) {
-                        console.log('A-Frame ya cargado');
-                        isARLoaded = true;
-                        updateProgress();
-                        resolve();
-                        return;
-                    }
-                    
-                    scene.addEventListener('loaded', () => {
-                        console.log('A-Frame cargado completamente');
-                        isARLoaded = true;
-                        updateProgress();
-                        resolve();
-                    });
-                });
-            }
-            
-            // Mostrar error
-            function showError(message) {
-                videoError.querySelector('p').textContent = message;
-                videoError.style.display = 'block';
-                loadingScreen.style.display = 'none';
-            }
-            
-            // Actualizar progreso
-            function updateProgress() {
-                let progress = 0;
-                
-                if (isVideoLoaded) progress += 50;
-                if (isARLoaded) progress += 50;
-                
-                loadProgress = Math.max(loadProgress, progress);
-                loadingBar.style.width = `${loadProgress}%`;
-                loadingPercentage.textContent = `${loadProgress}%`;
-                
-                if (loadProgress >= 100) {
-                    completeLoading();
-                }
-            }
-            
-            // Completar carga
-            function completeLoading() {
-                setTimeout(() => {
-                    loadingScreen.style.opacity = '0';
-                    
-                    setTimeout(() => {
-                        loadingScreen.style.display = 'none';
-                        arScene.classList.add('visible');
-                        soundControls.style.display = 'flex';
-                        
-                        // Iniciar MindAR
-                        const scene = document.querySelector('a-scene');
-                        const mindarSystem = scene.systems['mindar-image-system'];
-                        
-                        if (mindarSystem) {
-                            console.log('Iniciando MindAR...');
-                            mindarSystem.start();
-                            
-                            // Configurar eventos
-                            setupVideoEvents();
-                            
-                            // Mostrar alerta de sonido después de 2 segundos
-                            setTimeout(() => {
-                                if (!hasShownSoundAlert) {
-                                    showSoundAlert();
-                                }
-                            }, 2000);
-                        }
-                    }, 500);
-                }, 500);
-            }
-            
-            // Mostrar alerta de sonido
-            function showSoundAlert() {
-                soundAlert.style.display = 'flex';
-                hasShownSoundAlert = true;
-                
-                // Ocultar automáticamente después de 8 segundos
-                setTimeout(() => {
-                    hideSoundAlert();
-                }, 8000);
-            }
-            
-            // Ocultar alerta de sonido
-            function hideSoundAlert() {
-                soundAlert.classList.add('hidden');
-                setTimeout(() => {
-                    soundAlert.style.display = 'none';
-                    soundAlert.classList.remove('hidden');
-                }, 500);
-            }
-            
-            // Configurar eventos del video
-            function setupVideoEvents() {
-                const arTarget = document.querySelector('#ar-target');
-                const video = document.querySelector('#ar-video');
-                
-                if (!arTarget || !video) {
-                    console.error('Elementos AR no encontrados');
-                    return;
-                }
-                
-                console.log('Configurando eventos de video...');
-                
-                // Evento cuando se encuentra el marcador
-                arTarget.addEventListener('targetFound', (event) => {
-                    console.log('Marcador encontrado! Reproduciendo video...');
-                    
-                    // Intentar reproducir con sonido si ya está activado
-                    if (isSoundEnabled) {
-                        video.muted = false;
-                    }
-                    
-                    video.play().then(() => {
-                        console.log('Video reproducido correctamente');
-                        console.log('Sonido activado:', !video.muted);
-                    }).catch(error => {
-                        console.error('Error al reproducir video:', error);
-                    });
-                });
-                
-                // Evento cuando se pierde el marcador
-                arTarget.addEventListener('targetLost', (event) => {
-                    console.log('Marcador perdido');
-                    video.pause();
-                });
-            }
-            
-            // Toggle del sonido
-            function toggleSound() {
-                const video = document.querySelector('#ar-video');
-                
-                if (!video) {
-                    console.error('Video no encontrado');
-                    return;
-                }
-                
-                isSoundEnabled = !isSoundEnabled;
-                video.muted = !isSoundEnabled;
-                
-                // Actualizar botón
-                if (isSoundEnabled) {
-                    soundToggle.innerHTML = '🔊';
-                    soundToggle.classList.remove('muted');
-                    console.log('Sonido ACTIVADO');
-                    
-                    // Intentar reproducir con sonido si el video ya está en curso
-                    if (!video.paused) {
-                        video.muted = false;
-                    }
-                } else {
-                    soundToggle.innerHTML = '🔇';
-                    soundToggle.classList.add('muted');
-                    console.log('Sonido DESACTIVADO');
-                }
-                
-                // Ocultar alerta si está visible
-                hideSoundAlert();
-                
-                // Mostrar feedback táctil en móviles
-                soundToggle.style.transform = 'scale(0.9)';
-                setTimeout(() => {
-                    soundToggle.style.transform = 'scale(1)';
-                }, 100);
-            }
-            
-            // Mostrar instrucciones
-            function showInstructions() {
-                alert('INSTRUCCIONES:\n\n1. Apunta la cámara al marcador impreso\n2. El video se reproducirá automáticamente\n3. Presiona el botón 🔊 para activar el sonido\n4. Mueve el dispositivo para ver diferentes ángulos\n\n¡Disfruta la experiencia AR Tropical!');
-            }
-            
-            // Iniciar proceso de carga
-            function startLoading() {
-                console.log('Iniciando carga de recursos...');
-                
-                // Progreso inicial simulado
-                const fakeProgress = setInterval(() => {
-                    if (loadProgress < 30) {
-                        loadProgress += 2;
-                        loadingBar.style.width = `${loadProgress}%`;
-                        loadingPercentage.textContent = `${loadProgress}%`;
-                    } else {
-                        clearInterval(fakeProgress);
-                    }
-                }, 100);
-                
-                // Cargar recursos reales
-                Promise.all([
-                    checkVideo(),
-                    waitForAFrame()
-                ]).then(() => {
-                    console.log('Todos los recursos cargados');
-                }).catch(error => {
-                    console.error('Error en carga:', error);
-                });
-            }
-            
-            // Inicializar
+            // Ajustar inicialmente y en redimensionamiento
             adjustForMobile();
             window.addEventListener('resize', adjustForMobile);
-            window.addEventListener('orientationchange', adjustForMobile);
             
-            // Configurar eventos de UI
-            soundToggle.addEventListener('click', toggleSound);
-            closeAlert.addEventListener('click', hideSoundAlert);
-            infoBtn.addEventListener('click', showInstructions);
-            
-            // También cerrar alerta al tocar fuera
-            soundAlert.addEventListener('click', hideSoundAlert);
-            
-            // Iniciar carga
-            setTimeout(startLoading, 500);
-            
-            // Evento táctil global para activar audio (necesario en iOS)
-            document.addEventListener('touchstart', function firstTouch() {
-                console.log('Interacción táctil detectada - audio puede activarse');
-                document.removeEventListener('touchstart', firstTouch);
-            });
+            // Iniciar carga de recursos
+            setTimeout(loadResources, 300);
+        });
+        
+        // También iniciar cuando la ventana cargue completamente
+        window.addEventListener('load', function() {
+            console.log('Ventana completamente cargada');
         });
     </script>
 </body>
