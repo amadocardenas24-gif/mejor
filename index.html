@@ -22,6 +22,41 @@
             background: black;
         }
 
+        /* Ocultar TODOS los elementos de UI de A-Frame */
+        .a-enter-vr, 
+        .a-enter-ar,
+        .a-orientation-modal,
+        .a-vr-modal,
+        .vr-button,
+        .ar-button,
+        .a-enter-vr-button,
+        .a-enter-ar-button,
+        [data-a-frame-button] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        /* Ocultar cualquier modal o diálogo de A-Frame */
+        .a-dialog,
+        .a-modal,
+        .a-dialog-modal {
+            display: none !important;
+        }
+
+        /* Ocultar el botón de VR que pueda aparecer */
+        a-scene .a-enter-vr {
+            display: none !important;
+        }
+
+        /* Ocultar cualquier elemento de MindAR UI */
+        .mindar-ui-overlay,
+        .scanning-overlay,
+        .loading-overlay {
+            display: none !important;
+        }
+
         /* Pantalla de carga */
         .loading-screen {
             position: fixed;
@@ -152,13 +187,13 @@
             position: fixed;
             bottom: 25px;
             right: 25px;
-            width: 80px; /* Más grande */
+            width: 80px;
             height: 80px;
             border-radius: 50%;
             background: linear-gradient(135deg, #FF6B6B, #FFE66D);
             border: 3px solid white;
             color: white;
-            font-size: 36px; /* Más grande */
+            font-size: 36px;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -229,7 +264,7 @@
             50% { box-shadow: 0 0 30px rgba(78, 205, 196, 0.8); }
         }
 
-        /* Escena AR */
+        /* Escena AR - Forzar que ocupe toda la pantalla sin UI */
         #ar-scene {
             position: fixed;
             top: 0;
@@ -238,6 +273,13 @@
             height: 100%;
             opacity: 0;
             transition: opacity 1s ease;
+        }
+
+        /* Asegurar que a-scene ocupe todo sin elementos de UI */
+        #ar-scene a-scene {
+            display: block !important;
+            width: 100% !important;
+            height: 100% !important;
         }
 
         /* Indicador de marcador encontrado */
@@ -288,6 +330,11 @@
             
             .loading-title {
                 font-size: 2rem;
+            }
+            
+            /* Asegurar que en móvil tampoco aparezcan botones */
+            .a-enter-vr {
+                display: none !important;
             }
         }
 
@@ -349,7 +396,7 @@
 
     <!-- Escena AR -->
     <div id="ar-scene">
-        <!-- La escena A-Frame se insertará aquí -->
+        <!-- La escena A-Frame se insertará aquí dinámicamente -->
     </div>
 
     <script>
@@ -359,9 +406,8 @@
             const loadingPercentage = document.getElementById('loadingPercentage');
             let progress = 0;
             
-            // Incremento más lento para dar tiempo al audio
             const interval = setInterval(() => {
-                progress += Math.random() * 3 + 2; // 2-5% por intervalo
+                progress += Math.random() * 3 + 2;
                 if (progress > 100) progress = 100;
                 
                 loadingBar.style.width = progress + '%';
@@ -370,12 +416,12 @@
                 if (progress >= 100) {
                     clearInterval(interval);
                     
-                    // RETARDO IMPORTANTE: Esperar 1.5 segundos extra
+                    // RETARDO IMPORTANTE
                     setTimeout(() => {
                         initARScene();
                     }, 1500);
                 }
-            }, 150); // Intervalo de 150ms
+            }, 150);
         }
         
         // Inicializar escena AR después del retardo
@@ -390,14 +436,17 @@
                 // Ocultar pantalla de carga
                 loadingScreen.style.display = 'none';
                 
-                // Crear escena A-Frame dinámicamente
+                // Crear escena A-Frame dinámicamente con TODAS las opciones para deshabilitar UI
                 arScene.innerHTML = `
                     <a-scene 
-                        mindar-image="imageTargetSrc: ./marker.mind; autoStart: true; uiScanning: no; uiLoading: no;" 
-                        vr-mode-ui="enabled: false" 
+                        mindar-image="imageTargetSrc: ./marker.mind; autoStart: true; uiScanning: no; uiLoading: no; uiError: no;" 
+                        vr-mode-ui="enabled: false"
                         device-orientation-permission-ui="enabled: false"
-                        renderer="colorManagement: true; alpha: true;"
+                        permission-ui="enabled: false"
+                        renderer="colorManagement: true; alpha: true; antialias: true;"
                         embedded
+                        loading-screen="enabled: false; dotsColor: transparent; backgroundColor: transparent;"
+                        keyboard-shortcuts="enterVR: false"
                     >
                         <a-assets>
                             <video 
@@ -416,6 +465,7 @@
                             position="0 0 0" 
                             look-controls="enabled: false"
                             wasd-controls="enabled: false"
+                            cursor="rayOrigin: mouse"
                         ></a-camera>
                         
                         <a-entity 
@@ -434,6 +484,34 @@
                     </a-scene>
                 `;
                 
+                // Función para eliminar cualquier elemento de UI que pueda aparecer
+                function removeAFrameUI() {
+                    // Eliminar botones de VR/AR
+                    const vrButtons = document.querySelectorAll('.a-enter-vr, .a-enter-ar, .vr-button, .ar-button');
+                    vrButtons.forEach(btn => {
+                        btn.style.display = 'none';
+                        btn.remove();
+                    });
+                    
+                    // Eliminar cualquier modal
+                    const modals = document.querySelectorAll('.a-dialog, .a-modal, .a-orientation-modal');
+                    modals.forEach(modal => {
+                        modal.style.display = 'none';
+                        modal.remove();
+                    });
+                    
+                    // Eliminar cualquier overlay de carga
+                    const overlays = document.querySelectorAll('.a-loader-title, .mindar-ui-overlay');
+                    overlays.forEach(overlay => {
+                        overlay.style.display = 'none';
+                        overlay.remove();
+                    });
+                }
+                
+                // Ejecutar inmediatamente y periódicamente
+                removeAFrameUI();
+                const uiCleanupInterval = setInterval(removeAFrameUI, 100);
+                
                 // Mostrar escena AR
                 setTimeout(() => {
                     arScene.style.opacity = '1';
@@ -450,8 +528,13 @@
                         }, 500);
                     }, 5000);
                     
-                    // Esperar a que A-Frame cargue y configurar eventos
+                    // Esperar a que A-Frame cargue
                     setTimeout(() => {
+                        // Detener limpieza de UI después de 3 segundos
+                        setTimeout(() => {
+                            clearInterval(uiCleanupInterval);
+                        }, 3000);
+                        
                         setupAREvents();
                     }, 1000);
                     
@@ -486,7 +569,7 @@
                         // Mostrar indicador de marcador encontrado
                         targetFoundIndicator.style.display = 'flex';
                         
-                        // Ocultar instrucciones flotantes si aún están visibles
+                        // Ocultar instrucciones flotantes
                         const arInstructions = document.getElementById('arInstructions');
                         arInstructions.style.display = 'none';
                         
@@ -505,15 +588,6 @@
                         
                         // Ocultar indicador de marcador encontrado
                         targetFoundIndicator.style.display = 'none';
-                        
-                        // Mostrar instrucciones nuevamente después de 3 segundos
-                        setTimeout(() => {
-                            if (video.paused) {
-                                const arInstructions = document.getElementById('arInstructions');
-                                arInstructions.style.display = 'block';
-                                arInstructions.style.opacity = '1';
-                            }
-                        }, 3000);
                     });
                     
                     // Configurar botón de sonido GRANDE
@@ -530,11 +604,10 @@
                             soundToggle.classList.add('active');
                             console.log('Sonido activado');
                             
-                            // RETARDO CRÍTICO: Pequeño delay antes de activar audio
+                            // RETARDO CRÍTICO
                             setTimeout(() => {
                                 if (!isMuted) {
                                     video.muted = false;
-                                    // Feedback visual adicional
                                     soundToggle.style.transform = 'scale(1.2)';
                                     setTimeout(() => {
                                         soundToggle.style.transform = 'scale(1)';
@@ -566,7 +639,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             console.log('Iniciando carga con retardo...');
             
-            // Pequeño delay inicial antes de empezar la barra
+            // Pequeño delay inicial
             setTimeout(() => {
                 simulateLoading();
             }, 500);
