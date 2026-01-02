@@ -6,12 +6,15 @@
     <title>AR Video Experience - Tropical AR</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         body {
@@ -20,154 +23,335 @@
             width: 100vw;
             font-family: 'Arial', sans-serif;
             background: black;
+            touch-action: none;
         }
 
-        /* Pantalla de autorización de cámara */
+        /* Pantalla de autorización OBLIGATORIA - MEJORADA */
         .camera-permission-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #1A535C 0%, #4ECDC4 100%);
+            background: linear-gradient(45deg, 
+                #1a1a2e 0%, 
+                #16213e 25%, 
+                #0f3460 50%, 
+                #1a1a2e 75%, 
+                #16213e 100%);
+            background-size: 400% 400%;
+            animation: galaxyFlow 15s ease infinite;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 2000;
+            z-index: 9999;
             padding: 20px;
             text-align: center;
-            transition: opacity 0.5s ease;
+        }
+
+        @keyframes galaxyFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         .permission-content {
             max-width: 95%;
-            animation: fadeInUp 0.8s ease;
+            animation: floatIn 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            border: 2px solid rgba(255, 215, 0, 0.3);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5),
+                        0 0 100px rgba(0, 100, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .permission-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, 
+                transparent,
+                #00ffcc,
+                #ff00ff,
+                #00ffcc,
+                transparent);
+            animation: scanLine 3s linear infinite;
+        }
+
+        @keyframes scanLine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
 
         .permission-icon {
-            font-size: 5rem;
+            font-size: 6rem;
             margin-bottom: 20px;
             display: block;
-            animation: pulse 2s infinite;
+            animation: pulseGlow 2s infinite alternate;
+            text-shadow: 0 0 30px #00ffcc,
+                         0 0 60px #00ffcc,
+                         0 0 90px #00ffcc;
+        }
+
+        @keyframes pulseGlow {
+            0% { 
+                transform: scale(1) rotate(0deg);
+                text-shadow: 0 0 20px #00ffcc,
+                             0 0 40px #00ffcc;
+            }
+            100% { 
+                transform: scale(1.1) rotate(5deg);
+                text-shadow: 0 0 40px #00ffcc,
+                             0 0 80px #00ffcc,
+                             0 0 120px #00ffcc;
+            }
         }
 
         .permission-title {
-            font-size: 2.2rem;
+            font-size: 2.8rem;
             color: white;
             margin-bottom: 20px;
-            text-shadow: 2px 2px 0 #FF6B6B;
-            font-weight: bold;
+            font-weight: 900;
+            background: linear-gradient(45deg, #00ffcc, #ff00ff, #ffcc00);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+        }
+
+        .permission-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #00ffcc, transparent);
         }
 
         .permission-description {
-            color: white;
+            color: rgba(255, 255, 255, 0.9);
             font-size: 1.2rem;
             margin-bottom: 40px;
-            line-height: 1.5;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-        }
-
-        .permission-btn {
-            background: linear-gradient(135deg, #FF6B6B, #FFE66D);
-            color: white;
-            border: none;
-            padding: 20px 40px;
-            font-size: 1.3rem;
-            border-radius: 50px;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin: 10px;
-            min-width: 250px;
-        }
-
-        .permission-btn:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.4);
-        }
-
-        .permission-btn:active {
-            transform: translateY(-2px);
-        }
-
-        .permission-btn .btn-icon {
-            font-size: 1.8rem;
-        }
-
-        .permission-btn.deny {
-            background: linear-gradient(135deg, #666, #999);
-            opacity: 0.8;
-        }
-
-        .permission-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .permission-warning {
-            color: #FFE66D;
-            font-size: 0.9rem;
-            margin-top: 30px;
-            padding: 10px;
-            border: 2px dashed #FFE66D;
-            border-radius: 10px;
-            max-width: 400px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .permission-steps {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin: 30px 0;
-            text-align: left;
-            background: rgba(255, 255, 255, 0.1);
+            line-height: 1.6;
+            background: rgba(255, 255, 255, 0.05);
             padding: 20px;
             border-radius: 15px;
-            max-width: 400px;
+            border: 1px solid rgba(0, 255, 204, 0.2);
+            position: relative;
+        }
+
+        .permission-description::before {
+            content: '⚠️';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a2e;
+            padding: 0 15px;
+            font-size: 1.5rem;
+        }
+
+        /* Pasos futuristas */
+        .permission-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+            counter-reset: step-counter;
         }
 
         .permission-step {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            color: white;
+            background: linear-gradient(135deg, 
+                rgba(0, 255, 204, 0.1),
+                rgba(255, 0, 255, 0.1));
+            border: 1px solid rgba(0, 255, 204, 0.3);
+            border-radius: 15px;
+            padding: 25px 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            animation: stepAppear 0.8s ease backwards;
         }
 
-        .step-icon {
-            font-size: 1.5rem;
-            min-width: 40px;
-            height: 40px;
-            background: rgba(255, 107, 107, 0.3);
+        .permission-step:nth-child(1) { animation-delay: 0.2s; }
+        .permission-step:nth-child(2) { animation-delay: 0.4s; }
+        .permission-step:nth-child(3) { animation-delay: 0.6s; }
+
+        @keyframes stepAppear {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .permission-step::before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(45deg, #00ffcc, #ff00ff);
+            color: black;
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+        }
+
+        .step-icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            display: block;
+            filter: drop-shadow(0 0 10px rgba(0, 255, 204, 0.7));
         }
 
         .step-text {
+            color: white;
             font-size: 1rem;
+            font-weight: 600;
+            line-height: 1.4;
         }
 
-        /* Estado de espera para permiso */
+        /* Botón principal - Futurista */
+        .permission-btn {
+            background: linear-gradient(45deg, 
+                #00ffcc 0%,
+                #0099ff 50%,
+                #00ffcc 100%);
+            background-size: 200% 200%;
+            color: black;
+            border: none;
+            padding: 25px 50px;
+            font-size: 1.8rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 900;
+            box-shadow: 0 10px 30px rgba(0, 255, 204, 0.4),
+                        0 0 50px rgba(0, 255, 204, 0.3),
+                        inset 0 2px 0 rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            min-width: 350px;
+            margin-top: 40px;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            animation: buttonGlow 2s infinite alternate,
+                       buttonFloat 3s infinite ease-in-out;
+        }
+
+        @keyframes buttonGlow {
+            0% { 
+                box-shadow: 0 10px 30px rgba(0, 255, 204, 0.4),
+                            0 0 50px rgba(0, 255, 204, 0.3);
+            }
+            100% { 
+                box-shadow: 0 10px 40px rgba(0, 255, 204, 0.6),
+                            0 0 80px rgba(0, 255, 204, 0.5);
+            }
+        }
+
+        @keyframes buttonFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .permission-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                transparent,
+                rgba(255, 255, 255, 0.3),
+                transparent);
+            animation: buttonShine 3s infinite;
+        }
+
+        @keyframes buttonShine {
+            0% { left: -100%; }
+            100% { left: 200%; }
+        }
+
+        .permission-btn:hover {
+            transform: translateY(-5px) scale(1.05);
+            animation: none;
+            box-shadow: 0 15px 40px rgba(0, 255, 204, 0.6),
+                        0 0 100px rgba(0, 255, 204, 0.5),
+                        inset 0 2px 0 rgba(255, 255, 255, 0.7);
+        }
+
+        .permission-btn:active {
+            transform: translateY(0) scale(0.98);
+            box-shadow: 0 5px 20px rgba(0, 255, 204, 0.4),
+                        inset 0 2px 0 rgba(255, 255, 255, 0.5);
+        }
+
+        .permission-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+            animation: none;
+        }
+
+        .permission-btn .btn-icon {
+            font-size: 2.2rem;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+        }
+
+        /* Estado de permiso mejorado */
         .permission-status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 10px;
-            background: rgba(255, 255, 255, 0.1);
+            margin-top: 30px;
+            padding: 25px;
+            border-radius: 15px;
+            background: linear-gradient(135deg,
+                rgba(0, 100, 255, 0.1),
+                rgba(100, 0, 255, 0.1));
+            border: 1px solid rgba(0, 255, 204, 0.3);
             display: none;
-            animation: fadeIn 0.5s ease;
+            animation: statusAppear 0.5s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes statusAppear {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
         }
 
         .permission-status.visible {
@@ -178,69 +362,235 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 15px;
+            gap: 25px;
             color: white;
-            font-size: 1.1rem;
+            font-size: 1.4rem;
+            font-weight: bold;
+            text-shadow: 0 2px 10px rgba(0, 255, 204, 0.5);
         }
 
         .status-loading .spinner {
-            width: 30px;
-            height: 30px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(0, 255, 204, 0.3);
             border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s linear infinite;
+            border-top-color: #00ffcc;
+            border-right-color: #ff00ff;
+            border-bottom-color: #00ffcc;
+            border-left-color: #ff00ff;
+            animation: spin 1s linear infinite,
+                       colorChange 2s infinite alternate;
+        }
+
+        @keyframes colorChange {
+            0% { border-top-color: #00ffcc; border-right-color: #ff00ff; }
+            100% { border-top-color: #ff00ff; border-right-color: #00ffcc; }
         }
 
         .status-success {
-            color: #4ECDC4;
-            font-size: 1.1rem;
+            color: #00ffcc;
+            font-size: 1.5rem;
             font-weight: bold;
             display: none;
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 255, 204, 0.1);
+            border-radius: 10px;
+            border: 1px solid #00ffcc;
+            animation: successPulse 2s infinite;
         }
 
-        .status-success.visible {
-            display: block;
+        @keyframes successPulse {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(0, 255, 204, 0.3);
+                border-color: #00ffcc;
+            }
+            50% { 
+                box-shadow: 0 0 40px rgba(0, 255, 204, 0.6);
+                border-color: #ff00ff;
+            }
         }
 
         .status-error {
-            color: #FF6B6B;
-            font-size: 1.1rem;
+            color: #ff3366;
+            font-size: 1.4rem;
             font-weight: bold;
             display: none;
+            text-align: center;
+            padding: 25px;
+            background: rgba(255, 51, 102, 0.1);
+            border-radius: 10px;
+            border: 1px solid #ff3366;
+            position: relative;
+            overflow: hidden;
         }
 
-        .status-error.visible {
+        .status-error::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ff3366, #ff9966, #ff3366);
+            animation: errorScan 2s linear infinite;
+        }
+
+        @keyframes errorScan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .retry-btn {
+            background: linear-gradient(45deg, #ff3366, #ff9966);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(255, 51, 102, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .retry-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 51, 102, 0.6);
+        }
+
+        /* NOTA IMPORTANTE */
+        .permission-note {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg,
+                rgba(255, 204, 0, 0.1),
+                rgba(255, 102, 0, 0.1));
+            border: 1px solid rgba(255, 204, 0, 0.3);
+            border-radius: 15px;
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            line-height: 1.5;
+            position: relative;
+        }
+
+        .permission-note::before {
+            content: '💡';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1a1a2e;
+            padding: 0 15px;
+            font-size: 1.5rem;
+        }
+
+        .note-highlight {
+            color: #ffcc00;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 204, 0, 0.5);
+        }
+
+        /* Pantalla de bloqueo mejorada */
+        .blocked-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg,
+                #2d0000 0%,
+                #4d0000 50%,
+                #2d0000 100%);
+            z-index: 99999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            animation: blockedPulse 2s infinite alternate;
+        }
+
+        @keyframes blockedPulse {
+            0% { background: linear-gradient(45deg, #2d0000, #4d0000); }
+            100% { background: linear-gradient(45deg, #4d0000, #6d0000); }
+        }
+
+        .blocked-content {
+            max-width: 600px;
+            padding: 50px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 30px;
+            border: 3px solid #ff3366;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(255, 51, 102, 0.5),
+                        0 0 100px rgba(255, 51, 102, 0.3);
+        }
+
+        .blocked-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(90deg,
+                transparent,
+                rgba(255, 51, 102, 0.1),
+                transparent);
+            animation: blockedScan 3s linear infinite;
+        }
+
+        @keyframes blockedScan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .blocked-icon {
+            font-size: 6rem;
+            margin-bottom: 30px;
             display: block;
+            animation: shake 0.5s infinite alternate,
+                       blockedGlow 1s infinite alternate;
         }
 
-        /* Animaciones */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
+        @keyframes blockedGlow {
+            0% { 
+                filter: drop-shadow(0 0 20px #ff3366);
+                transform: scale(1);
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
+            100% { 
+                filter: drop-shadow(0 0 40px #ff3366)
+                        drop-shadow(0 0 60px #ff3366);
+                transform: scale(1.1);
             }
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+        .blocked-title {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #ff3366, #ff9966);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .blocked-text {
+            font-size: 1.3rem;
+            margin-bottom: 40px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 2px 10px rgba(255, 51, 102, 0.5);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        /* Ocultar TODOS los elementos de UI de A-Frame */
+        /* ⚠️ RESTANTE DEL CSS PERMANECE IGUAL ⚠️ */
+        /* (Manteniendo todos los estilos anteriores) */
+        
         .a-enter-vr, 
         .a-enter-ar,
         .a-orientation-modal,
@@ -256,101 +606,206 @@
             pointer-events: none !important;
         }
 
-        /* Ocultar cualquier modal o diálogo de A-Frame */
         .a-dialog,
         .a-modal,
         .a-dialog-modal {
             display: none !important;
         }
 
-        /* Ocultar el botón de VR que pueda aparecer */
         a-scene .a-enter-vr {
             display: none !important;
         }
 
-        /* Ocultar cualquier elemento de MindAR UI */
         .mindar-ui-overlay,
         .scanning-overlay,
         .loading-overlay {
             display: none !important;
         }
 
-        /* Pantalla de carga */
         .loading-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #FF6B6B 0%, #FFE66D 25%, #4ECDC4 50%, #1A535C 75%);
+            background: linear-gradient(45deg,
+                #1a1a2e 0%,
+                #16213e 25%,
+                #0f3460 50%,
+                #533483 75%,
+                #e94560 100%);
             background-size: 400% 400%;
-            animation: gradientBG 10s ease infinite;
+            animation: cosmicFlow 15s ease infinite;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 1000;
-            transition: opacity 0.5s ease;
+            transition: opacity 1s ease;
+            display: none;
+        }
+
+        @keyframes cosmicFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         .loading-content {
             text-align: center;
-            padding: 20px;
+            padding: 40px;
             max-width: 95%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            border: 2px solid rgba(0, 255, 204, 0.3);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            animation: contentFloat 3s infinite ease-in-out;
+        }
+
+        @keyframes contentFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
         }
 
         .loading-title {
-            font-size: 2.5rem;
+            font-size: 3.5rem;
             color: white;
-            text-shadow: 3px 3px 0 #1A535C;
-            margin-bottom: 30px;
-            font-weight: bold;
+            margin-bottom: 40px;
+            font-weight: 900;
+            background: linear-gradient(45deg, #00ffcc, #ff00ff, #ffcc00);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            text-shadow: 0 10px 30px rgba(0, 255, 204, 0.3);
+            position: relative;
         }
 
-        /* Barra de carga */
+        .loading-title::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 3px;
+            background: linear-gradient(90deg, 
+                transparent,
+                #00ffcc,
+                #ff00ff,
+                #00ffcc,
+                transparent);
+            animation: titleLine 3s infinite linear;
+        }
+
+        @keyframes titleLine {
+            0% { background-position: -200px 0; }
+            100% { background-position: 200px 0; }
+        }
+
         .loading-bar-container {
-            width: 80%;
-            max-width: 300px;
-            height: 20px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            height: 25px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
             overflow: hidden;
-            margin: 20px auto;
-            border: 2px solid #1A535C;
+            margin: 30px auto;
+            border: 2px solid rgba(0, 255, 204, 0.3);
+            position: relative;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .loading-bar-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            background: linear-gradient(90deg,
+                transparent,
+                rgba(255, 255, 255, 0.1),
+                transparent);
+            animation: containerShine 2s infinite linear;
+        }
+
+        @keyframes containerShine {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
 
         .loading-bar {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #FF6B6B, #FFE66D, #4ECDC4);
-            border-radius: 8px;
-            transition: width 0.5s ease;
+            background: linear-gradient(90deg,
+                #00ffcc,
+                #0099ff,
+                #ff00ff,
+                #00ffcc);
+            background-size: 300% 100%;
+            border-radius: 13px;
+            transition: width 0.3s ease;
+            position: relative;
+            animation: barGradient 2s infinite linear;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+        }
+
+        @keyframes barGradient {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 300% 0%; }
         }
 
         .loading-percentage {
-            font-size: 1.8rem;
-            color: white;
-            font-weight: bold;
-            margin: 10px 0;
-            text-shadow: 2px 2px 0 #1A535C;
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin: 30px 0;
+            background: linear-gradient(45deg, #00ffcc, #ff00ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 5px 15px rgba(0, 255, 204, 0.3);
+            animation: percentagePulse 1s infinite alternate;
         }
 
-        /* Instrucciones gráficas */
+        @keyframes percentagePulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
+        .loading-details {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 1.1rem;
+            margin-top: 10px;
+            font-style: italic;
+            animation: detailsFade 2s infinite alternate;
+        }
+
+        @keyframes detailsFade {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
         .instructions-container {
-            margin-top: 30px;
+            margin-top: 40px;
             position: relative;
-            height: 200px;
+            height: 250px;
             width: 100%;
-            max-width: 400px;
+            max-width: 500px;
             margin-left: auto;
             margin-right: auto;
+            perspective: 1000px;
         }
 
         .instruction-step {
             position: absolute;
             text-align: center;
+            width: 100%;
             opacity: 0;
-            animation: stepFade 12s infinite;
+            transform: rotateY(90deg);
+            animation: stepRotate 12s infinite cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
 
         .instruction-step:nth-child(1) {
@@ -365,74 +820,313 @@
             animation-delay: 8s;
         }
 
+        @keyframes stepRotate {
+            0%, 33% { 
+                opacity: 1;
+                transform: rotateY(0deg);
+            }
+            66%, 100% { 
+                opacity: 0;
+                transform: rotateY(-90deg);
+            }
+        }
+
         .instruction-icon {
-            font-size: 4rem;
-            margin-bottom: 10px;
+            font-size: 5rem;
+            margin-bottom: 20px;
             display: block;
-            animation: bounce 2s infinite;
+            animation: iconFloat 3s infinite ease-in-out;
+            filter: drop-shadow(0 10px 20px rgba(0, 255, 204, 0.5));
+        }
+
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(5deg); }
         }
 
         .instruction-text {
             color: white;
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-            background: rgba(26, 83, 92, 0.7);
-            padding: 8px 15px;
-            border-radius: 20px;
+            background: linear-gradient(135deg,
+                rgba(0, 255, 204, 0.2),
+                rgba(255, 0, 255, 0.2));
+            padding: 15px 30px;
+            border-radius: 25px;
             display: inline-block;
+            border: 2px solid rgba(0, 255, 204, 0.3);
+            text-shadow: 0 2px 10px rgba(0, 255, 204, 0.5);
+            animation: textGlow 2s infinite alternate;
         }
 
-        /* Animaciones de instrucciones */
-        @keyframes stepFade {
-            0%, 33% { opacity: 1; }
-            66%, 100% { opacity: 0; }
+        @keyframes textGlow {
+            0% { 
+                box-shadow: 0 5px 15px rgba(0, 255, 204, 0.3);
+                border-color: rgba(0, 255, 204, 0.3);
+            }
+            100% { 
+                box-shadow: 0 5px 25px rgba(255, 0, 255, 0.5);
+                border-color: rgba(255, 0, 255, 0.5);
+            }
         }
 
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        @keyframes gradientBG {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* Botón de sonido GRANDE */
+        /* Botón de sonido MEJORADO */
         .sound-btn {
             position: fixed;
-            bottom: 25px;
-            right: 25px;
-            width: 80px;
-            height: 80px;
+            bottom: 30px;
+            right: 30px;
+            width: 90px;
+            height: 90px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #FF6B6B, #FFE66D);
-            border: 3px solid white;
-            color: white;
-            font-size: 36px;
+            background: linear-gradient(135deg, #00ffcc, #0099ff);
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            color: black;
+            font-size: 40px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1001;
             display: none;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 255, 204, 0.5),
+                        0 0 50px rgba(0, 255, 204, 0.3);
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            animation: soundFloat 3s infinite ease-in-out;
+        }
+
+        @keyframes soundFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(5deg); }
         }
 
         .sound-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            transform: scale(1.2) rotate(15deg);
+            box-shadow: 0 15px 40px rgba(0, 255, 204, 0.7),
+                        0 0 80px rgba(0, 255, 204, 0.5);
         }
 
         .sound-btn.active {
-            background: linear-gradient(135deg, #4ECDC4, #1A535C);
-            animation: pulseGlow 2s infinite;
+            background: linear-gradient(135deg, #ff00ff, #ffcc00);
+            animation: activePulse 1s infinite alternate,
+                       soundFloat 3s infinite ease-in-out;
         }
 
-        /* Instrucciones flotantes en AR */
+        @keyframes activePulse {
+            0% { 
+                box-shadow: 0 10px 30px rgba(255, 0, 255, 0.5),
+                            0 0 50px rgba(255, 0, 255, 0.3);
+            }
+            100% { 
+                box-shadow: 0 10px 40px rgba(255, 0, 255, 0.7),
+                            0 0 80px rgba(255, 0, 255, 0.5);
+            }
+        }
+
+        /* Nuevo: Panel de control */
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 20px;
+            z-index: 1002;
+            display: none;
+            border: 2px solid rgba(0, 255, 204, 0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: panelSlide 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes panelSlide {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .control-title {
+            color: #00ffcc;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-label {
+            color: white;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .control-slider {
+            width: 200px;
+            height: 8px;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, #00ffcc, #ff00ff);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: 3px solid #00ffcc;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.8);
+        }
+
+        .toggle-switch {
+            width: 50px;
+            height: 26px;
+            background: rgba(0, 255, 204, 0.3);
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: rgba(0, 255, 204, 0.8);
+        }
+
+        .toggle-slider {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(24px);
+        }
+
+        /* Botón de menú */
+        .menu-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ffcc, #0099ff);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            color: black;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1002;
+            display: none;
+            box-shadow: 0 5px 20px rgba(0, 255, 204, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .menu-btn:hover {
+            transform: scale(1.1) rotate(90deg);
+            box-shadow: 0 8px 25px rgba(0, 255, 204, 0.7);
+        }
+
+        /* Indicador de marcador mejorado */
+        .target-found-indicator {
+            position: fixed;
+            bottom: 140px;
+            right: 30px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ffcc, #0099ff);
+            border: 3px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            display: none;
+            animation: targetPulse 1.5s infinite alternate,
+                       targetRotate 4s infinite linear;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.7);
+        }
+
+        @keyframes targetPulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
+        @keyframes targetRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .target-found-indicator .icon {
+            font-size: 35px;
+            color: black;
+            font-weight: bold;
+        }
+
+        /* Contador de FPS */
+        .fps-counter {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: #00ffcc;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-family: 'Courier New', monospace;
+            z-index: 1002;
+            display: none;
+            border: 1px solid rgba(0, 255, 204, 0.3);
+        }
+
+        /* Notificaciones */
+        .notification {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(0, 255, 204, 0.9), rgba(0, 153, 255, 0.9));
+            color: black;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-weight: bold;
+            z-index: 1003;
+            display: none;
+            animation: notificationSlide 0.5s ease;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes notificationSlide {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        /* Instrucciones AR mejoradas */
         .ar-instructions {
             position: fixed;
             top: 20px;
@@ -444,45 +1138,36 @@
         }
 
         .ar-instruction-card {
-            background: rgba(255, 107, 107, 0.9);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 25px;
+            background: linear-gradient(135deg, 
+                rgba(0, 255, 204, 0.9),
+                rgba(255, 0, 255, 0.9));
+            color: black;
+            padding: 15px 30px;
+            border-radius: 30px;
             display: inline-block;
             font-weight: bold;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            animation: slideInDown 0.5s ease;
+            box-shadow: 0 10px 30px rgba(0, 255, 204, 0.5);
+            animation: cardFloat 3s infinite ease-in-out;
+            border: 2px solid white;
+        }
+
+        @keyframes cardFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
 
         .ar-instruction-card .icon {
-            font-size: 1.5rem;
-            margin-right: 10px;
-            animation: swing 2s infinite;
+            font-size: 1.8rem;
+            margin-right: 15px;
+            animation: iconSwing 2s infinite ease-in-out;
         }
 
-        /* Animaciones para instrucciones AR */
-        @keyframes slideInDown {
-            from {
-                transform: translateY(-100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
+        @keyframes iconSwing {
+            0%, 100% { transform: rotate(-15deg); }
+            50% { transform: rotate(15deg); }
         }
 
-        @keyframes swing {
-            0%, 100% { transform: rotate(-10deg); }
-            50% { transform: rotate(10deg); }
-        }
-
-        @keyframes pulseGlow {
-            0%, 100% { box-shadow: 0 0 20px rgba(255, 107, 107, 0.5); }
-            50% { box-shadow: 0 0 30px rgba(78, 205, 196, 0.8); }
-        }
-
-        /* Escena AR - Forzar que ocupe toda la pantalla sin UI */
+        /* Escena AR con efectos */
         #ar-scene {
             position: fixed;
             top: 0;
@@ -491,206 +1176,272 @@
             height: 100%;
             opacity: 0;
             transition: opacity 1s ease;
+            display: none;
         }
 
-        /* Asegurar que a-scene ocupe todo sin elementos de UI */
         #ar-scene a-scene {
             display: block !important;
             width: 100% !important;
             height: 100% !important;
         }
 
-        /* Indicador de marcador encontrado */
-        .target-found-indicator {
+        /* Efectos de partículas (CSS) */
+        .particles {
             position: fixed;
-            bottom: 120px;
-            right: 25px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: rgba(78, 205, 196, 0.9);
-            border: 2px solid white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1001;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9998;
             display: none;
-            animation: pulse 1.5s infinite;
         }
 
-        .target-found-indicator .icon {
-            font-size: 30px;
-            color: white;
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #00ffcc;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #00ffcc,
+                        0 0 20px #00ffcc;
+            animation: particleFloat linear infinite;
         }
 
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.1); }
+        @keyframes particleFloat {
+            to {
+                transform: translateY(-100vh) rotate(360deg);
+            }
         }
 
-        /* Responsive */
+        /* Responsive mejorado */
         @media (max-width: 768px) {
+            .permission-content {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            .permission-title {
+                font-size: 2rem;
+            }
+            
+            .permission-btn {
+                min-width: 280px;
+                font-size: 1.5rem;
+                padding: 20px 40px;
+            }
+            
+            .permission-steps {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .control-panel {
+                top: auto;
+                bottom: 120px;
+                right: 20px;
+                left: 20px;
+                width: auto;
+            }
+            
+            .control-slider {
+                width: 100%;
+            }
+            
+            .sound-btn, .menu-btn {
+                width: 70px;
+                height: 70px;
+                font-size: 30px;
+            }
+            
+            .target-found-indicator {
+                width: 60px;
+                height: 60px;
+                bottom: 120px;
+            }
+        }
+
+        @media (max-height: 700px) {
+            .permission-icon {
+                font-size: 4rem;
+            }
+            
             .permission-title {
                 font-size: 1.8rem;
             }
             
-            .permission-description {
-                font-size: 1rem;
+            .loading-title {
+                font-size: 2.5rem;
             }
             
-            .permission-btn {
-                padding: 15px 30px;
-                font-size: 1.1rem;
-                min-width: 200px;
-            }
-            
-            .sound-btn {
-                width: 70px;
-                height: 70px;
-                font-size: 32px;
-                bottom: 20px;
-                right: 20px;
+            .instructions-container {
+                height: 180px;
             }
             
             .instruction-icon {
                 font-size: 3rem;
             }
-            
-            .instruction-text {
-                font-size: 1rem;
-            }
-            
-            .loading-title {
-                font-size: 2rem;
-            }
-            
-            /* Asegurar que en móvil tampoco aparezcan botones */
-            .a-enter-vr {
-                display: none !important;
-            }
-        }
-
-        @media (max-height: 700px) {
-            .instructions-container {
-                height: 150px;
-                margin-top: 20px;
-            }
-            
-            .instruction-icon {
-                font-size: 2.5rem;
-            }
-            
-            .permission-icon {
-                font-size: 3.5rem;
-                margin-bottom: 15px;
-            }
-            
-            .permission-title {
-                font-size: 1.8rem;
-                margin-bottom: 15px;
-            }
-            
-            .permission-description {
-                font-size: 1rem;
-                margin-bottom: 25px;
-                padding: 10px;
-            }
         }
     </style>
 </head>
 <body>
-    <!-- Pantalla de autorización de cámara -->
+    <!-- Pantalla de autorización OBLIGATORIA -->
     <div class="camera-permission-screen" id="cameraPermissionScreen">
         <div class="permission-content">
             <div class="permission-icon">📸</div>
-            <h1 class="permission-title">¡Hola! 🌴</h1>
+            <h1 class="permission-title">¡ACCESO A CÁMARA REQUERIDO!</h1>
             
             <div class="permission-description">
-                Para disfrutar de esta experiencia de Realidad Aumentada, necesitamos acceder a tu cámara. 
-                Esto nos permitirá mostrar contenido AR cuando apuntes a marcadores especiales.
+                Esta experiencia de Realidad Aumentada <span class="note-highlight">REQUIERE ACCESO COMPLETO</span> a tu cámara.
+                <br><br>
+                <span class="note-highlight">NO ES OPCIONAL:</span> Sin autorización, la aplicación <span class="note-highlight">NO FUNCIONARÁ</span>.
             </div>
             
             <div class="permission-steps">
                 <div class="permission-step">
-                    <div class="step-icon">1️⃣</div>
-                    <div class="step-text">Permite el acceso a la cámara cuando tu navegador lo solicite</div>
+                    <span class="step-icon">❗</span>
+                    <div class="step-text">DEBES autorizar la cámara para continuar</div>
                 </div>
                 <div class="permission-step">
-                    <div class="step-icon">2️⃣</div>
-                    <div class="step-text">Apunta tu cámara al marcador especial</div>
+                    <span class="step-icon">📱</span>
+                    <div class="step-text">Permite el acceso cuando tu dispositivo lo solicite</div>
                 </div>
                 <div class="permission-step">
-                    <div class="step-icon">3️⃣</div>
-                    <div class="step-text">¡Disfruta del video en realidad aumentada!</div>
+                    <span class="step-icon">🎬</span>
+                    <div class="step-text">¡Disfruta de la experiencia AR completa!</div>
                 </div>
             </div>
             
+            <!-- BOTÓN PRINCIPAL - OBLIGATORIO -->
             <button class="permission-btn" id="allowCameraBtn">
                 <span class="btn-icon">✅</span>
-                Permitir Cámara
+                AUTORIZAR CÁMARA (OBLIGATORIO)
             </button>
             
-            <button class="permission-btn deny" id="denyCameraBtn">
-                <span class="btn-icon">❌</span>
-                No Permitir
-            </button>
-            
-            <!-- Estado de la solicitud de permiso -->
+            <!-- Estado de la solicitud -->
             <div class="permission-status" id="permissionStatus">
                 <div class="status-loading" id="statusLoading">
                     <div class="spinner"></div>
-                    <span>Esperando tu autorización...</span>
+                    <span>ESPERANDO TU AUTORIZACIÓN...</span>
                 </div>
                 <div class="status-success" id="statusSuccess">
-                    ✅ ¡Permiso concedido! Cargando experiencia...
+                    ✅ ¡PERMISO CONCEDIDO! Preparando experiencia AR...
                 </div>
                 <div class="status-error" id="statusError">
-                    ❌ Permiso denegado. No puedes continuar sin acceso a la cámara.
+                    ❌ PERMISO DENEGADO. DEBES AUTORIZAR LA CÁMARA.
+                    <br>
+                    <button class="retry-btn" id="retryBtn">REINTENTAR AUTORIZACIÓN</button>
                 </div>
             </div>
             
-            <div class="permission-warning">
-                ℹ️ La cámara solo se usa para la experiencia AR. No grabamos ni almacenamos ningún video.
+            <div class="permission-note">
+                💡 <span class="note-highlight">IMPORTANTE:</span> Esta aplicación NO graba ni almacena video, 
+                solo procesa en tiempo real para la experiencia AR. Los datos de la cámara 
+                <span class="note-highlight">NO SALEN DE TU DISPOSITIVO</span>.
             </div>
+        </div>
+    </div>
+
+    <!-- Pantalla de BLOQUEO -->
+    <div class="blocked-screen" id="blockedScreen">
+        <div class="blocked-content">
+            <div class="blocked-icon">🚫</div>
+            <h1 class="blocked-title">ACCESO BLOQUEADO</h1>
+            <div class="blocked-text">
+                Has denegado el acceso a la cámara.<br><br>
+                <span style="color: #ffcc00; font-weight: bold;">
+                    Esta aplicación REQUIERE autorización de cámara para funcionar.
+                </span><br><br>
+                Por favor, recarga la página y autoriza la cámara cuando se te solicite.
+            </div>
+            <button class="retry-btn" onclick="location.reload()">
+                🔄 RECARGAR Y AUTORIZAR
+            </button>
         </div>
     </div>
 
     <!-- Pantalla de carga -->
     <div class="loading-screen" id="loadingScreen">
         <div class="loading-content">
-            <div class="loading-title">🌴 AR TROPICAL 🌺</div>
+            <div class="loading-title">🌴 AR EXPERIENCE PRO 🌺</div>
             <div class="loading-bar-container">
                 <div class="loading-bar" id="loadingBar"></div>
             </div>
             <div class="loading-percentage" id="loadingPercentage">0%</div>
+            <div class="loading-details" id="loadingDetails">Inicializando sistema AR...</div>
             
-            <!-- Instrucciones gráficas animadas -->
             <div class="instructions-container">
                 <div class="instruction-step">
-                    <span class="instruction-icon">📱</span>
-                    <div class="instruction-text">Abre tu cámara</div>
+                    <span class="instruction-icon">🚀</span>
+                    <div class="instruction-text">Sistema AR cargando...</div>
                 </div>
                 <div class="instruction-step">
                     <span class="instruction-icon">🔍</span>
-                    <div class="instruction-text">Busca el marcador</div>
+                    <div class="instruction-text">Preparando detección de marcadores</div>
                 </div>
                 <div class="instruction-step">
                     <span class="instruction-icon">🎬</span>
-                    <div class="instruction-text">¡Disfruta el video AR!</div>
+                    <div class="instruction-text">¡Experiencia inmersiva lista!</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Botón de sonido GRANDE -->
+    <!-- Partículas de fondo -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Panel de control -->
+    <div class="control-panel" id="controlPanel">
+        <div class="control-title">⚙️ CONTROLES AR</div>
+        
+        <div class="control-group">
+            <div class="control-label">🔊 Volumen</div>
+            <input type="range" class="control-slider" id="volumeSlider" min="0" max="100" value="100">
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label">💡 Brillo</div>
+            <input type="range" class="control-slider" id="brightnessSlider" min="50" max="150" value="100">
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label">🎨 Contraste</div>
+            <input type="range" class="control-slider" id="contrastSlider" min="50" max="200" value="100">
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label">✨ Efectos</div>
+            <div class="toggle-switch" id="effectsToggle">
+                <div class="toggle-slider"></div>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <div class="control-label">🎯 Guías</div>
+            <div class="toggle-switch" id="guidesToggle">
+                <div class="toggle-slider"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botón de menú -->
+    <button class="menu-btn" id="menuToggle">⚙️</button>
+    
+    <!-- Botón de sonido -->
     <button class="sound-btn" id="soundToggle">🔇</button>
     
-    <!-- Indicador de marcador encontrado -->
+    <!-- Indicador de marcador -->
     <div class="target-found-indicator" id="targetFoundIndicator">
         <div class="icon">🎯</div>
     </div>
     
-    <!-- Instrucciones flotantes en AR -->
+    <!-- Contador de FPS -->
+    <div class="fps-counter" id="fpsCounter">FPS: 60</div>
+    
+    <!-- Notificaciones -->
+    <div class="notification" id="notification"></div>
+    
+    <!-- Instrucciones flotantes -->
     <div class="ar-instructions" id="arInstructions">
         <div class="ar-instruction-card">
             <span class="icon">👉</span>
@@ -704,25 +1455,136 @@
     </div>
 
     <script>
-        // Estados de permisos
+        // =================== SISTEMA MEJORADO ===================
+        
+        // Configuración
+        const CONFIG = {
+            maxPermissionAttempts: 3,
+            delayBeforeAR: 2000,
+            loadingSteps: [
+                "Inicializando sistema AR...",
+                "Cargando motores de renderizado...",
+                "Configurando detección de marcadores...",
+                "Preparando efectos visuales...",
+                "Optimizando rendimiento...",
+                "¡Listo para la experiencia AR!"
+            ],
+            effects: {
+                particles: true,
+                glitch: true,
+                scanLines: true,
+                bloom: true
+            }
+        };
+        
+        // Estados globales
         let cameraPermissionGranted = false;
-        let cameraStream = null;
-        let permissionRequested = false;
+        let permissionAttempts = 0;
+        let currentVolume = 100;
+        let currentBrightness = 100;
+        let currentContrast = 100;
+        let effectsEnabled = true;
+        let guidesEnabled = true;
+        let lastFrameTime = 0;
+        let fps = 60;
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
         
         // Elementos DOM
-        const cameraPermissionScreen = document.getElementById('cameraPermissionScreen');
-        const loadingScreen = document.getElementById('loadingScreen');
-        const allowCameraBtn = document.getElementById('allowCameraBtn');
-        const denyCameraBtn = document.getElementById('denyCameraBtn');
-        const permissionStatus = document.getElementById('permissionStatus');
-        const statusLoading = document.getElementById('statusLoading');
-        const statusSuccess = document.getElementById('statusSuccess');
-        const statusError = document.getElementById('statusError');
+        const elements = {
+            cameraPermissionScreen: document.getElementById('cameraPermissionScreen'),
+            blockedScreen: document.getElementById('blockedScreen'),
+            loadingScreen: document.getElementById('loadingScreen'),
+            arScene: document.getElementById('ar-scene'),
+            particles: document.getElementById('particles'),
+            allowCameraBtn: document.getElementById('allowCameraBtn'),
+            permissionStatus: document.getElementById('permissionStatus'),
+            statusLoading: document.getElementById('statusLoading'),
+            statusSuccess: document.getElementById('statusSuccess'),
+            statusError: document.getElementById('statusError'),
+            menuToggle: document.getElementById('menuToggle'),
+            soundToggle: document.getElementById('soundToggle'),
+            controlPanel: document.getElementById('controlPanel'),
+            volumeSlider: document.getElementById('volumeSlider'),
+            brightnessSlider: document.getElementById('brightnessSlider'),
+            contrastSlider: document.getElementById('contrastSlider'),
+            effectsToggle: document.getElementById('effectsToggle'),
+            guidesToggle: document.getElementById('guidesToggle'),
+            targetFoundIndicator: document.getElementById('targetFoundIndicator'),
+            fpsCounter: document.getElementById('fpsCounter'),
+            notification: document.getElementById('notification'),
+            loadingDetails: document.getElementById('loadingDetails')
+        };
         
-        // Función para verificar si ya tenemos permisos
+        // =================== FUNCIONES DE UTILIDAD ===================
+        
+        // Mostrar notificación
+        function showNotification(message, duration = 3000) {
+            elements.notification.textContent = message;
+            elements.notification.style.display = 'block';
+            
+            setTimeout(() => {
+                elements.notification.style.display = 'none';
+            }, duration);
+        }
+        
+        // Crear partículas
+        function createParticles() {
+            if (!CONFIG.effects.particles) return;
+            
+            elements.particles.innerHTML = '';
+            elements.particles.style.display = 'block';
+            
+            const particleCount = window.innerWidth < 768 ? 30 : 50;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                // Posición aleatoria
+                const left = Math.random() * 100;
+                const top = Math.random() * 100;
+                const size = Math.random() * 4 + 2;
+                const duration = Math.random() * 10 + 5;
+                const delay = Math.random() * 5;
+                
+                particle.style.left = `${left}%`;
+                particle.style.top = `${top}%`;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.animationDuration = `${duration}s`;
+                particle.style.animationDelay = `${delay}s`;
+                
+                // Color aleatorio
+                const colors = ['#00ffcc', '#0099ff', '#ff00ff', '#ffcc00'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.background = color;
+                particle.style.boxShadow = `0 0 10px ${color}, 0 0 20px ${color}`;
+                
+                elements.particles.appendChild(particle);
+            }
+        }
+        
+        // Actualizar FPS
+        function updateFPS(currentTime) {
+            frameCount++;
+            
+            if (currentTime - lastFpsUpdate >= 1000) {
+                fps = Math.round((frameCount * 1000) / (currentTime - lastFpsUpdate));
+                elements.fpsCounter.textContent = `FPS: ${fps}`;
+                frameCount = 0;
+                lastFpsUpdate = currentTime;
+            }
+            
+            lastFrameTime = currentTime;
+            requestAnimationFrame(updateFPS);
+        }
+        
+        // =================== SISTEMA DE PERMISOS ===================
+        
+        // Verificar permisos existentes
         async function checkExistingCameraPermission() {
             try {
-                // Esta API es experimental pero útil
                 if (navigator.permissions && navigator.permissions.query) {
                     const permission = await navigator.permissions.query({ name: 'camera' });
                     return permission.state === 'granted';
@@ -734,152 +1596,174 @@
             }
         }
         
-        // Función para solicitar permiso de cámara y ESPERAR respuesta
+        // Solicitar permiso (OBLIGATORIO)
         async function requestCameraPermission() {
-            if (permissionRequested) return false;
+            if (permissionAttempts >= CONFIG.maxPermissionAttempts) {
+                showBlockedScreen();
+                return false;
+            }
             
-            permissionRequested = true;
+            permissionAttempts++;
+            console.log(`🔍 Intento de permiso #${permissionAttempts}`);
             
             try {
-                console.log('Solicitando permiso de cámara...');
+                // Mostrar estado
+                elements.permissionStatus.classList.add('visible');
+                elements.statusLoading.classList.add('visible');
+                elements.statusSuccess.classList.remove('visible');
+                elements.statusError.classList.remove('visible');
                 
-                // Mostrar estado de carga
-                permissionStatus.classList.add('visible');
-                statusLoading.classList.add('visible');
-                statusSuccess.classList.remove('visible');
-                statusError.classList.remove('visible');
+                elements.allowCameraBtn.disabled = true;
+                elements.allowCameraBtn.innerHTML = '<span class="btn-icon">⏳</span> ESPERANDO AUTORIZACIÓN...';
                 
-                // Deshabilitar botones mientras se procesa
-                allowCameraBtn.disabled = true;
-                denyCameraBtn.disabled = true;
-                allowCameraBtn.innerHTML = '<span class="btn-icon">⏳</span> Procesando...';
+                // Retardo para UX
+                await new Promise(resolve => setTimeout(resolve, 1500));
                 
-                // RETARDO para asegurar que el usuario vea el mensaje
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Intentar acceder a la cámara
-                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                // Solicitar permiso
+                const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { 
-                        facingMode: 'environment', // Preferir cámara trasera
+                        facingMode: 'environment',
                         width: { ideal: 1920 },
-                        height: { ideal: 1080 }
+                        height: { ideal: 1080 },
+                        frameRate: { ideal: 60 }
                     },
                     audio: false 
                 });
                 
-                // Si llegamos aquí, el permiso fue concedido
+                // Éxito
                 cameraPermissionGranted = true;
-                console.log('Permiso de cámara concedido');
+                console.log('✅ Permiso CONCEDIDO');
                 
-                // Mostrar estado de éxito
-                statusLoading.classList.remove('visible');
-                statusSuccess.classList.add('visible');
+                stream.getTracks().forEach(track => track.stop());
                 
-                // Detener el stream inmediatamente (solo necesitamos el permiso)
-                cameraStream.getTracks().forEach(track => track.stop());
+                elements.statusLoading.classList.remove('visible');
+                elements.statusSuccess.classList.add('visible');
                 
-                // RETARDO para mostrar el mensaje de éxito
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                await new Promise(resolve => setTimeout(resolve, 2000));
                 
+                proceedToAR();
                 return true;
                 
             } catch (error) {
-                console.error('Error al acceder a la cámara:', error);
+                console.error('❌ Error:', error);
                 
-                // Mostrar estado de error
-                statusLoading.classList.remove('visible');
-                statusError.classList.add('visible');
+                elements.statusLoading.classList.remove('visible');
+                elements.statusError.classList.add('visible');
                 
-                // Habilitar botón para reintentar
-                allowCameraBtn.disabled = false;
-                denyCameraBtn.disabled = false;
-                allowCameraBtn.innerHTML = '<span class="btn-icon">🔄</span> Reintentar';
+                let errorMessage = '';
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    errorMessage = 'Has denegado el permiso. DEBES autorizar la cámara.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage = 'No se encontró cámara. Conecta una cámara.';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMessage = 'Tu navegador no soporta acceso a cámara.';
+                } else {
+                    errorMessage = 'Error al acceder a la cámara.';
+                }
                 
-                // Deshabilitar botón de denegar
-                denyCameraBtn.style.display = 'none';
+                elements.statusError.innerHTML = `❌ ${errorMessage}<br><br>
+                    <button class="retry-btn" id="dynamicRetryBtn">
+                        REINTENTAR (${CONFIG.maxPermissionAttempts - permissionAttempts} intentos)
+                    </button>`;
                 
-                // Cambiar texto del botón de permitir para reintentar
-                allowCameraBtn.onclick = () => {
-                    permissionRequested = false;
-                    statusError.classList.remove('visible');
-                    requestCameraPermission();
-                };
+                setTimeout(() => {
+                    document.getElementById('dynamicRetryBtn')?.addEventListener('click', requestCameraPermission);
+                }, 100);
                 
                 return false;
             }
         }
         
-        // Función para ocultar pantalla de permisos y mostrar carga SOLO si se concedió permiso
+        // Mostrar pantalla de bloqueo
+        function showBlockedScreen() {
+            elements.cameraPermissionScreen.style.display = 'none';
+            elements.blockedScreen.style.display = 'flex';
+            
+            document.body.style.overflow = 'hidden';
+            document.body.style.pointerEvents = 'none';
+            elements.blockedScreen.style.pointerEvents = 'auto';
+        }
+        
+        // =================== SISTEMA DE CARGA ===================
+        
+        // Proceder a AR
         function proceedToAR() {
             if (!cameraPermissionGranted) {
-                console.log('No se puede proceder sin permiso de cámara');
+                showBlockedScreen();
                 return;
             }
             
-            // Ocultar pantalla de permisos con animación
-            cameraPermissionScreen.style.opacity = '0';
+            elements.cameraPermissionScreen.style.opacity = '0';
             
             setTimeout(() => {
-                cameraPermissionScreen.style.display = 'none';
+                elements.cameraPermissionScreen.style.display = 'none';
+                elements.loadingScreen.style.display = 'flex';
                 
-                // Mostrar pantalla de carga
-                loadingScreen.style.display = 'flex';
+                // Iniciar efectos
+                createParticles();
                 
-                // RETARDO antes de iniciar la carga
                 setTimeout(() => {
-                    simulateLoading();
-                }, 300);
+                    simulateEnhancedLoading();
+                }, 500);
                 
             }, 500);
         }
         
-        // Función para simular carga con retardo
-        function simulateLoading() {
+        // Carga mejorada
+        function simulateEnhancedLoading() {
             const loadingBar = document.getElementById('loadingBar');
             const loadingPercentage = document.getElementById('loadingPercentage');
             let progress = 0;
+            let stepIndex = 0;
             
             const interval = setInterval(() => {
+                // Avance progresivo
                 progress += Math.random() * 3 + 2;
                 if (progress > 100) progress = 100;
                 
                 loadingBar.style.width = progress + '%';
                 loadingPercentage.textContent = Math.round(progress) + '%';
                 
+                // Actualizar detalles
+                if (progress >= (stepIndex + 1) * (100 / CONFIG.loadingSteps.length)) {
+                    if (stepIndex < CONFIG.loadingSteps.length) {
+                        elements.loadingDetails.textContent = CONFIG.loadingSteps[stepIndex];
+                        stepIndex++;
+                    }
+                }
+                
+                // Completado
                 if (progress >= 100) {
                     clearInterval(interval);
                     
-                    // RETARDO IMPORTANTE
                     setTimeout(() => {
-                        initARScene();
-                    }, 1500);
+                        initEnhancedARScene();
+                    }, CONFIG.delayBeforeAR);
                 }
             }, 150);
         }
         
-        // Inicializar escena AR después del retardo
-        function initARScene() {
-            const loadingScreen = document.getElementById('loadingScreen');
-            const arScene = document.getElementById('ar-scene');
-            
-            // Desvanecer pantalla de carga
-            loadingScreen.style.opacity = '0';
+        // =================== SISTEMA AR MEJORADO ===================
+        
+        // Inicializar escena AR mejorada
+        function initEnhancedARScene() {
+            elements.loadingScreen.style.opacity = '0';
             
             setTimeout(() => {
-                // Ocultar pantalla de carga
-                loadingScreen.style.display = 'none';
+                elements.loadingScreen.style.display = 'none';
                 
-                // Crear escena A-Frame dinámicamente con TODAS las opciones para deshabilitar UI
-                arScene.innerHTML = `
+                // Crear escena A-Frame con efectos
+                elements.arScene.innerHTML = `
                     <a-scene 
-                        mindar-image="imageTargetSrc: ./marker.mind; autoStart: true; uiScanning: no; uiLoading: no; uiError: no;" 
+                        mindar-image="imageTargetSrc: ./marker.mind; autoStart: true; uiScanning: no; uiLoading: no; uiError: no; maxTrack: 2;" 
                         vr-mode-ui="enabled: false"
                         device-orientation-permission-ui="enabled: false"
                         permission-ui="enabled: false"
-                        renderer="colorManagement: true; alpha: true; antialias: true;"
+                        renderer="colorManagement: true; alpha: true; antialias: true; highRefreshRate: true;"
                         embedded
                         loading-screen="enabled: false; dotsColor: transparent; backgroundColor: transparent;"
                         keyboard-shortcuts="enterVR: false"
+                        stats
                     >
                         <a-assets>
                             <video 
@@ -891,139 +1775,164 @@
                                 playsinline 
                                 crossorigin="anonymous"
                                 webkit-playsinline
+                                x5-video-player-type="h5"
+                                x5-video-player-fullscreen="true"
+                                x5-video-orientation="landscape"
                             ></video>
+                            <img id="scan-effect" crossorigin="anonymous">
                         </a-assets>
                         
                         <a-camera 
                             position="0 0 0" 
-                            look-controls="enabled: false"
+                            look-controls="enabled: true"
                             wasd-controls="enabled: false"
                             cursor="rayOrigin: mouse"
                         ></a-camera>
                         
+                        <!-- Efectos visuales -->
+                        <a-entity id="effects-container" visible="${effectsEnabled}">
+                            <a-entity id="glitch-effect" visible="${CONFIG.effects.glitch}"></a-entity>
+                            <a-entity id="scan-lines" visible="${CONFIG.effects.scanLines}"></a-entity>
+                            <a-entity id="bloom-effect" visible="${CONFIG.effects.bloom}"></a-entity>
+                        </a-entity>
+                        
+                        <!-- Marcador principal -->
                         <a-entity 
                             id="ar-target" 
                             mindar-image-target="targetIndex: 0"
                         >
                             <a-plane
+                                id="video-plane"
                                 src="#ar-video"
                                 position="0 0 0"
                                 rotation="0 0 0"
                                 height="1"
                                 width="1.78"
+                                material="transparent: true; alphaTest: 0.5; shader: flat;"
+                            ></a-plane>
+                            
+                            <!-- Guías de ayuda -->
+                            <a-entity id="guide-lines" visible="${guidesEnabled}">
+                                <a-circle 
+                                    position="0 0.6 0" 
+                                    radius="0.05" 
+                                    color="#00ffcc"
+                                    opacity="0.5"
+                                    animation="property: scale; to: 1.2 1.2 1; dir: alternate; loop: true; dur: 1000"
+                                ></a-circle>
+                                <a-ring 
+                                    position="0 0 0" 
+                                    radius-inner="0.8" 
+                                    radius-outer="0.85" 
+                                    color="#00ffcc"
+                                    opacity="0.3"
+                                    rotation="-90 0 0"
+                                ></a-ring>
+                            </a-entity>
+                        </a-entity>
+                        
+                        <!-- Marcador secundario (opcional) -->
+                        <a-entity 
+                            id="ar-target-2" 
+                            mindar-image-target="targetIndex: 1"
+                            visible="false"
+                        >
+                            <a-plane
+                                src="#ar-video"
+                                position="0 0 0"
+                                rotation="0 0 0"
+                                height="0.5"
+                                width="0.89"
                                 material="transparent: true; alphaTest: 0.5;"
                             ></a-plane>
                         </a-entity>
+                        
+                        <!-- Sistema de partículas 3D -->
+                        <a-entity id="particle-system" particle-system="preset: snow; color: #00ffcc; particleCount: 100;" visible="${effectsEnabled}"></a-entity>
                     </a-scene>
                 `;
                 
-                // Función para eliminar cualquier elemento de UI que pueda aparecer
-                function removeAFrameUI() {
-                    // Eliminar botones de VR/AR
-                    const vrButtons = document.querySelectorAll('.a-enter-vr, .a-enter-ar, .vr-button, .ar-button');
-                    vrButtons.forEach(btn => {
-                        btn.style.display = 'none';
-                        btn.remove();
-                    });
-                    
-                    // Eliminar cualquier modal
-                    const modals = document.querySelectorAll('.a-dialog, .a-modal, .a-orientation-modal');
-                    modals.forEach(modal => {
-                        modal.style.display = 'none';
-                        modal.remove();
-                    });
-                    
-                    // Eliminar cualquier overlay de carga
-                    const overlays = document.querySelectorAll('.a-loader-title, .mindar-ui-overlay');
-                    overlays.forEach(overlay => {
-                        overlay.style.display = 'none';
-                        overlay.remove();
-                    });
-                }
-                
-                // Ejecutar inmediatamente y periódicamente
-                removeAFrameUI();
-                const uiCleanupInterval = setInterval(removeAFrameUI, 100);
-                
-                // Mostrar escena AR
+                // Mostrar escena
                 setTimeout(() => {
-                    arScene.style.opacity = '1';
+                    elements.arScene.style.display = 'block';
                     
-                    // Mostrar instrucciones flotantes
-                    const arInstructions = document.getElementById('arInstructions');
-                    arInstructions.style.display = 'block';
-                    
-                    // Ocultar instrucciones después de 5 segundos
                     setTimeout(() => {
-                        arInstructions.style.opacity = '0';
-                        setTimeout(() => {
-                            arInstructions.style.display = 'none';
-                        }, 500);
-                    }, 5000);
-                    
-                    // Esperar a que A-Frame cargue
-                    setTimeout(() => {
-                        // Detener limpieza de UI después de 3 segundos
-                        setTimeout(() => {
-                            clearInterval(uiCleanupInterval);
-                        }, 3000);
+                        elements.arScene.style.opacity = '1';
                         
-                        setupAREvents();
-                    }, 1000);
+                        // Mostrar controles
+                        elements.menuToggle.style.display = 'flex';
+                        elements.fpsCounter.style.display = 'block';
+                        
+                        // Iniciar FPS counter
+                        requestAnimationFrame(updateFPS);
+                        
+                        // Configurar eventos
+                        setTimeout(() => {
+                            setupEnhancedEvents();
+                            showNotification('✅ Experiencia AR cargada', 2000);
+                        }, 1000);
+                        
+                    }, 100);
                     
                 }, 100);
                 
             }, 500);
         }
         
-        // Configurar eventos AR
-        function setupAREvents() {
-            const soundToggle = document.getElementById('soundToggle');
-            const targetFoundIndicator = document.getElementById('targetFoundIndicator');
+        // Configurar eventos mejorados
+        function setupEnhancedEvents() {
+            const soundToggle = elements.soundToggle;
+            const targetFoundIndicator = elements.targetFoundIndicator;
             let isMuted = true;
             
-            // Esperar a que existan los elementos
             const checkInterval = setInterval(() => {
                 const arTarget = document.querySelector('#ar-target');
                 const video = document.querySelector('#ar-video');
+                const videoPlane = document.querySelector('#video-plane');
                 
-                if (arTarget && video) {
+                if (arTarget && video && videoPlane) {
                     clearInterval(checkInterval);
                     
-                    console.log('Configurando eventos AR...');
+                    console.log('🎮 Configurando eventos mejorados...');
                     
-                    // Evento cuando se encuentra el marcador
+                    // Aplicar ajustes iniciales
+                    applyVideoEffects();
+                    
+                    // Evento: Marcador encontrado
                     arTarget.addEventListener('targetFound', () => {
-                        console.log('Marcador detectado - Reproduciendo video');
+                        console.log('🎯 Marcador DETECTADO');
                         
-                        // Mostrar botón de sonido GRANDE
                         soundToggle.style.display = 'flex';
-                        
-                        // Mostrar indicador de marcador encontrado
                         targetFoundIndicator.style.display = 'flex';
                         
-                        // Ocultar instrucciones flotantes
+                        // Ocultar instrucciones
                         const arInstructions = document.getElementById('arInstructions');
                         arInstructions.style.display = 'none';
                         
-                        // Reproducir video (con mute por defecto)
+                        // Reproducir video con efectos
                         video.play().catch(e => {
-                            console.log('Video play falló, intentando con mute:', e);
+                            console.log('Intentando reproducir con mute...', e);
                             video.muted = true;
                             video.play();
                         });
-                    });
-                    
-                    // Evento cuando se pierde el marcador
-                    arTarget.addEventListener('targetLost', () => {
-                        console.log('Marcador perdido - Pausando video');
-                        video.pause();
                         
-                        // Ocultar indicador de marcador encontrado
-                        targetFoundIndicator.style.display = 'none';
+                        showNotification('🎯 Marcador detectado', 1500);
+                        
+                        // Efectos visuales
+                        if (effectsEnabled) {
+                            triggerFoundEffects();
+                        }
                     });
                     
-                    // Configurar botón de sonido GRANDE
+                    // Evento: Marcador perdido
+                    arTarget.addEventListener('targetLost', () => {
+                        console.log('Marcador PERDIDO');
+                        video.pause();
+                        targetFoundIndicator.style.display = 'none';
+                        showNotification('🔍 Buscando marcador...', 1000);
+                    });
+                    
+                    // Botón de sonido con retardo mejorado
                     soundToggle.addEventListener('click', () => {
                         isMuted = !isMuted;
                         video.muted = isMuted;
@@ -1031,118 +1940,244 @@
                         if (isMuted) {
                             soundToggle.textContent = '🔇';
                             soundToggle.classList.remove('active');
-                            console.log('Sonido desactivado');
+                            showNotification('🔇 Sonido desactivado', 1000);
                         } else {
                             soundToggle.textContent = '🔊';
                             soundToggle.classList.add('active');
-                            console.log('Sonido activado');
+                            showNotification('🔊 Sonido activado', 1000);
                             
-                            // RETARDO CRÍTICO
+                            // Retardo crítico mejorado
                             setTimeout(() => {
                                 if (!isMuted) {
                                     video.muted = false;
-                                    soundToggle.style.transform = 'scale(1.2)';
+                                    soundToggle.style.transform = 'scale(1.3) rotate(15deg)';
                                     setTimeout(() => {
-                                        soundToggle.style.transform = 'scale(1)';
-                                    }, 200);
+                                        soundToggle.style.transform = 'scale(1) rotate(0deg)';
+                                    }, 300);
                                 }
-                            }, 200);
+                            }, 250);
                         }
                         
-                        // Feedback visual
                         soundToggle.style.transform = 'scale(0.9)';
                         setTimeout(() => {
                             soundToggle.style.transform = 'scale(1)';
-                        }, 100);
+                        }, 150);
                     });
                     
-                    // También activar sonido al tocar la pantalla (para iOS)
+                    // Touch para iOS mejorado
+                    let touchCount = 0;
                     document.addEventListener('touchstart', function firstTouch() {
-                        console.log('Interacción táctil detectada');
-                        soundToggle.style.display = 'flex';
-                        document.removeEventListener('touchstart', firstTouch);
+                        touchCount++;
+                        if (touchCount === 3) {
+                            soundToggle.style.display = 'flex';
+                            showNotification('👆 Triple toque detectado', 1000);
+                            document.removeEventListener('touchstart', firstTouch);
+                        }
                     });
                     
-                    console.log('Eventos AR configurados correctamente');
+                    // Gestos táctiles
+                    const hammer = new Hammer(document.body);
+                    hammer.get('pinch').set({ enable: true });
+                    hammer.get('rotate').set({ enable: true });
+                    
+                    let lastScale = 1;
+                    let lastRotation = 0;
+                    
+                    hammer.on('pinch', (e) => {
+                        if (videoPlane) {
+                            const scale = lastScale * e.scale;
+                            videoPlane.setAttribute('scale', `${scale} ${scale} 1`);
+                        }
+                    });
+                    
+                    hammer.on('pinchend', () => {
+                        if (videoPlane) {
+                            lastScale = parseFloat(videoPlane.getAttribute('scale').split(' ')[0]);
+                        }
+                    });
+                    
+                    hammer.on('rotate', (e) => {
+                        if (videoPlane) {
+                            const rotation = lastRotation + e.rotation;
+                            videoPlane.setAttribute('rotation', `0 0 ${rotation}`);
+                        }
+                    });
+                    
+                    hammer.on('rotateend', () => {
+                        if (videoPlane) {
+                            lastRotation = parseFloat(videoPlane.getAttribute('rotation').split(' ')[2] || 0);
+                        }
+                    });
+                    
+                    // Doble toque para reset
+                    hammer.on('doubletap', () => {
+                        if (videoPlane) {
+                            videoPlane.setAttribute('scale', '1 1 1');
+                            videoPlane.setAttribute('rotation', '0 0 0');
+                            lastScale = 1;
+                            lastRotation = 0;
+                            showNotification('🔄 Video reiniciado', 1000);
+                        }
+                    });
+                    
+                    console.log('✅ Eventos mejorados configurados');
                 }
             }, 100);
         }
         
-        // Event Listeners para los botones de permiso
-        allowCameraBtn.addEventListener('click', async () => {
-            // Solicitar permiso y ESPERAR respuesta
-            const permissionGranted = await requestCameraPermission();
+        // Aplicar efectos de video
+        function applyVideoEffects() {
+            const video = document.querySelector('#ar-video');
+            if (!video) return;
             
-            if (permissionGranted) {
-                // Proceder a la experiencia AR SOLO si se concedió permiso
-                proceedToAR();
-            }
-            // Si no se concedió, no hacemos nada (ya se muestra mensaje de error)
-        });
+            // Aplicar filtros CSS
+            video.style.filter = `
+                brightness(${currentBrightness}%)
+                contrast(${currentContrast}%)
+                saturate(120%)
+            `;
+            
+            // Aplicar volumen
+            video.volume = currentVolume / 100;
+        }
         
-        denyCameraBtn.addEventListener('click', () => {
-            // Mostrar mensaje y opciones
-            const userConfirmed = confirm('Sin acceso a la cámara, no podrás disfrutar de la experiencia AR. ¿Estás seguro de que deseas denegar el permiso?');
+        // Efectos al encontrar marcador
+        function triggerFoundEffects() {
+            const targetFoundIndicator = elements.targetFoundIndicator;
             
-            if (userConfirmed) {
-                // Mostrar mensaje estático y no proceder
-                cameraPermissionScreen.innerHTML = `
-                    <div class="permission-content">
-                        <div class="permission-icon">😔</div>
-                        <h1 class="permission-title">Permiso Denegado</h1>
-                        <div class="permission-description">
-                            La experiencia de Realidad Aumentada requiere acceso a la cámara.
-                            <br><br>
-                            Puedes recargar la página para volver a intentarlo.
-                        </div>
-                        <button class="permission-btn" id="retryPermissionBtn">
-                            <span class="btn-icon">🔄</span>
-                            Recargar Página
-                        </button>
-                    </div>
-                `;
+            // Animación especial
+            targetFoundIndicator.style.animation = 'none';
+            setTimeout(() => {
+                targetFoundIndicator.style.animation = 
+                    'targetPulse 0.5s infinite alternate, targetRotate 2s infinite linear';
+            }, 10);
+            
+            // Efecto de partículas
+            if (CONFIG.effects.particles) {
+                createParticles();
+            }
+        }
+        
+        // =================== EVENTOS DE CONTROLES ===================
+        
+        // Configurar controles
+        function setupControls() {
+            // Botón de menú
+            elements.menuToggle.addEventListener('click', () => {
+                elements.controlPanel.style.display = 
+                    elements.controlPanel.style.display === 'none' ? 'block' : 'none';
+            });
+            
+            // Sliders
+            elements.volumeSlider.addEventListener('input', (e) => {
+                currentVolume = e.target.value;
+                const video = document.querySelector('#ar-video');
+                if (video) video.volume = currentVolume / 100;
+                showNotification(`🔊 Volumen: ${currentVolume}%`, 800);
+            });
+            
+            elements.brightnessSlider.addEventListener('input', (e) => {
+                currentBrightness = e.target.value;
+                applyVideoEffects();
+                showNotification(`💡 Brillo: ${currentBrightness}%`, 800);
+            });
+            
+            elements.contrastSlider.addEventListener('input', (e) => {
+                currentContrast = e.target.value;
+                applyVideoEffects();
+                showNotification(`🎨 Contraste: ${currentContrast}%`, 800);
+            });
+            
+            // Toggles
+            elements.effectsToggle.addEventListener('click', () => {
+                effectsEnabled = !effectsEnabled;
+                elements.effectsToggle.classList.toggle('active', effectsEnabled);
                 
-                // Agregar event listener al nuevo botón
-                setTimeout(() => {
-                    document.getElementById('retryPermissionBtn').addEventListener('click', () => {
-                        location.reload();
-                    });
-                }, 100);
-            }
-        });
-        
-        // Inicializar cuando la página cargue
-        window.addEventListener('DOMContentLoaded', async () => {
-            console.log('Página cargada, verificando permisos...');
+                const effectsContainer = document.querySelector('#effects-container');
+                const particleSystem = document.querySelector('#particle-system');
+                
+                if (effectsContainer) {
+                    effectsContainer.setAttribute('visible', effectsEnabled);
+                }
+                if (particleSystem) {
+                    particleSystem.setAttribute('visible', effectsEnabled);
+                }
+                
+                elements.particles.style.display = effectsEnabled ? 'block' : 'none';
+                showNotification(effectsEnabled ? '✨ Efectos activados' : '✨ Efectos desactivados', 1000);
+            });
             
-            // Verificar si ya tenemos permisos
+            elements.guidesToggle.addEventListener('click', () => {
+                guidesEnabled = !guidesEnabled;
+                elements.guidesToggle.classList.toggle('active', guidesEnabled);
+                
+                const guideLines = document.querySelector('#guide-lines');
+                if (guideLines) {
+                    guideLines.setAttribute('visible', guidesEnabled);
+                }
+                showNotification(guidesEnabled ? '🎯 Guías activadas' : '🎯 Guías desactivadas', 1000);
+            });
+            
+            // Botón de reintento
+            document.getElementById('retryBtn')?.addEventListener('click', requestCameraPermission);
+        }
+        
+        // =================== INICIALIZACIÓN ===================
+        
+        // Evento principal
+        elements.allowCameraBtn.addEventListener('click', requestCameraPermission);
+        
+        // Inicializar al cargar
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log('🚀 Iniciando AR Experience PRO...');
+            
+            // Configurar controles
+            setupControls();
+            
+            // Verificar permisos existentes
             const hasExistingPermission = await checkExistingCameraPermission();
             
             if (hasExistingPermission) {
-                console.log('Ya tiene permisos de cámara, procediendo directamente...');
+                console.log('✅ Ya tiene permisos, procediendo...');
                 cameraPermissionGranted = true;
-                
-                // Ocultar pantalla de permisos y proceder directamente
-                cameraPermissionScreen.style.display = 'none';
-                loadingScreen.style.display = 'flex';
-                
-                // RETARDO antes de iniciar la carga
-                setTimeout(() => {
-                    simulateLoading();
-                }, 1000);
+                proceedToAR();
             } else {
-                // Mostrar pantalla de permisos (ya está visible por defecto)
-                console.log('Mostrando pantalla de permisos...');
+                console.log('⚠️ Mostrando autorización obligatoria...');
             }
             
-            // Manejar redimensionamiento
+            // Redimensionamiento
             window.addEventListener('resize', () => {
-                const elements = [cameraPermissionScreen, loadingScreen];
-                elements.forEach(element => {
-                    if (element) {
-                        element.style.height = window.innerHeight + 'px';
+                const screens = [
+                    elements.cameraPermissionScreen,
+                    elements.blockedScreen,
+                    elements.loadingScreen
+                ];
+                screens.forEach(screen => {
+                    if (screen) {
+                        screen.style.height = window.innerHeight + 'px';
                     }
                 });
+                
+                // Recrear partículas
+                if (elements.particles.style.display !== 'none') {
+                    createParticles();
+                }
+            });
+            
+            // Bloquear escape
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && 
+                    elements.cameraPermissionScreen.style.display !== 'none') {
+                    e.preventDefault();
+                    showNotification('Debes autorizar la cámara para continuar.', 2000);
+                }
+            });
+            
+            // Prevenir clics fuera del botón
+            elements.cameraPermissionScreen.addEventListener('click', (e) => {
+                if (e.target === elements.cameraPermissionScreen) {
+                    showNotification('Haz clic en "AUTORIZAR CÁMARA" para continuar.', 1500);
+                }
             });
         });
     </script>
